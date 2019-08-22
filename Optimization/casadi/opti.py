@@ -9,7 +9,7 @@ V_final = 0
 #
 
 T = 10.  # Time horizon
-N = 20  # number of control intervals
+N = 50  # number of control intervals
 
 # declare model variables
 X = MX.sym("X")
@@ -88,7 +88,7 @@ for k in range(N-1): # 20
     w   += [Uk]
     lbw += [-1, 0] # the low bounder for accerlation and curvature -- control variables
     ubw += [3, 10] # upper bounder
-    w0  += [0, 0]
+    w0  += [-1, 0]
 
     # Integrate till the end of the interval
     Fk = F(x0=Xk, p=Uk)
@@ -98,9 +98,9 @@ for k in range(N-1): # 20
     # New NLP variable for state at end of interval
     Xk = MX.sym('X_' + str(k+1), 6)
     w   += [Xk]
-    lbw += [-100, -10, -inf, -10, -3, -inf] # [X Y FI V A K]
+    lbw += [-100, -10, -inf, 0, -3, -inf] # [X Y FI V A K]
     ubw += [100, 10, inf, 10, 3, inf]
-    w0 += [0, 0, 0, 0, 0, 0]
+    w0 += [20, 0, 0, 20, -2, 0]
 
     # add equality constraint
     g += [Xk_end - Xk]
@@ -110,8 +110,8 @@ for k in range(N-1): # 20
 # the for final condition
 Uk = MX.sym('U_' + str(N-1), 2)
 w   += [Uk]
-lbw += [-1, 0] # the low bounder for accerlation and curvature -- control variables
-ubw += [3, 10] # upper bounder
+lbw += [-1, -5] # the low bounder for accerlation and curvature -- control variables
+ubw += [3, 5] # upper bounder
 w0  += [0, 0]
 
 # Integrate till the end of the interval
@@ -142,12 +142,13 @@ w_opt = sol['x'].full().flatten()
 # Plot the solution
 x1_opt = w_opt[0::8]
 x2_opt = w_opt[1::8]
+path = [x1_opt,x2_opt]
+x3_opt = w_opt[3::8]
 u_opt = w_opt[6::8]
 print(x1_opt)
 
 # u_opt = w_opt[2::8]
-LL = len(x1_opt)
-print(LL)
+LL = len(x1_opt) # 21
 
 tgrid = [T/N*k for k in range(LL)]
 
@@ -156,11 +157,16 @@ plt.figure(1)
 plt.clf()
 plt.plot(tgrid, x1_opt, '--')
 plt.plot(tgrid, x2_opt, '-')
+plt.plot(tgrid, x3_opt, ':')
 # plt.plot(tgrid, x3_opt, '-')
+
 
 plt.step(tgrid, vertcat(DM.nan(1), u_opt), '-.')
 plt.xlabel('t')
 plt.legend(['x1','x2','u'])
 plt.grid()
+
+plt.figure(2)
+plt.plot(x1_opt, x2_opt, "--")
 plt.show()
 
